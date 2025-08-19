@@ -44,7 +44,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Enter Secret Key"
-            android:inputType="textPassword"
+            android:inputType="text"
+            android:textColor="@color/black"
             android:background="@drawable/edit_text_background"
             android:padding="12dp"
             android:layout_marginBottom="16dp" />
@@ -53,6 +54,7 @@
             android:id="@+id/dataInput"
             android:layout_width="match_parent"
             android:layout_height="120dp"
+            android:textColor="@color/black"
             android:hint="Enter Data (JSON/Text/Number)"
             android:inputType="textMultiLine"
             android:gravity="top"

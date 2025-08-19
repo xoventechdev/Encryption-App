@@ -36,6 +36,7 @@
         android:layout_height="120dp"
         android:inputType="textMultiLine"
         android:gravity="top"
+        android:textColor="@color/black"
         android:background="@drawable/edit_text_background"
         android:padding="12dp"
         android:enabled="false" />
