@@ -1,41 +1,36 @@
 package dev.xoventech.encryptionapp;
 
-import android.Manifest;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
-    private EditText secretKeyInput, dataInput;
-    private Button encryptButton, decryptButton, viewSavedButton;
-    private static final int STORAGE_PERMISSION_CODE = 100;
-    private boolean useExternalStorage = false; // Toggle for internal/external storage
+    private EditText  packageNameInput, versionCodeInput, forceUpdateMessageInput, contentInput;
+    private Spinner forceUpdateSpinner, adNetworkSpinner;
+    private Button encryptButton, decryptButton, viewSavedButton, importDecryptButton;
+    private FileUtils.FileMetadata editingMetadata;
+    private String secretKeyInput = "ali@2";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,15 +40,45 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        secretKeyInput = findViewById(R.id.secretKeyInput);
-        dataInput = findViewById(R.id.dataInput);
+        packageNameInput = findViewById(R.id.packageNameInput);
+        versionCodeInput = findViewById(R.id.versionCodeInput);
+        forceUpdateSpinner = findViewById(R.id.forceUpdateSpinner);
+        adNetworkSpinner = findViewById(R.id.adNetworkSpinner);
+        forceUpdateMessageInput = findViewById(R.id.forceUpdateMessageInput);
+        contentInput = findViewById(R.id.contentInput);
         encryptButton = findViewById(R.id.encryptButton);
         decryptButton = findViewById(R.id.decryptButton);
         viewSavedButton = findViewById(R.id.viewSavedButton);
+        importDecryptButton = findViewById(R.id.importDecryptButton);
+
+        // Setup Spinners
+        ArrayAdapter<String> forceUpdateAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"true", "false"});
+        forceUpdateAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        forceUpdateSpinner.setAdapter(forceUpdateAdapter);
+
+        ArrayAdapter<String> adNetworkAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new String[]{"admob", "adNetwork"});
+        adNetworkAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        adNetworkSpinner.setAdapter(adNetworkAdapter);
+
+        // Handle intent from SavedResponsesActivity for editing
+        Intent intent = getIntent();
+        if (intent.hasExtra("file_metadata")) {
+            editingMetadata = (FileUtils.FileMetadata) intent.getSerializableExtra("file_metadata");
+            if (editingMetadata.type.equals("Encrypt")) {
+                if (!secretKeyInput.contains("")) {
+                    showSecretKeyDialog(editingMetadata);
+                } else {
+                    loadMetadata(editingMetadata, secretKeyInput);
+                }
+            } else {
+                loadMetadata(editingMetadata, null);
+            }
+        }
 
         encryptButton.setOnClickListener(v -> processData("Encrypt"));
         decryptButton.setOnClickListener(v -> processData("Decrypt"));
         viewSavedButton.setOnClickListener(v -> startActivity(new Intent(this, SavedResponsesActivity.class)));
+        importDecryptButton.setOnClickListener(v -> showImportDecryptDialog());
 
         setupExitConfirmation();
     }
@@ -72,18 +97,7 @@ public class MainActivity extends AppCompatActivity {
     private void showExitDialog() {
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Exit App")
-                .setMessage("Are you sure you want to exit? We'd love to hear your feedback!")
-
-                // "Rate App" button
-                .setNeutralButton("Rate App", (dialog, which) -> {
-                    try {
-                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + getPackageName())));
-                    } catch (ActivityNotFoundException e) {
-                        // If Play Store is not installed, open in browser
-                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + getPackageName())));
-                    }
-                    finishAffinity(); // Close all activities
-                    System.exit(0);                })
+                .setMessage("Are you sure you want to exit?")
 
                 // "Cancel" button
                 .setNegativeButton("Cancel", (dialog, which) -> {
@@ -100,27 +114,132 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void processData(String type) {
-        String secretKey = secretKeyInput.getText().toString().trim();
-        String data = dataInput.getText().toString().trim();
 
-        if (secretKey.isEmpty() || data.isEmpty()) {
-            Toast.makeText(this, "Enter both secret key and data", Toast.LENGTH_SHORT).show();
+    private void showSecretKeyDialog(FileUtils.FileMetadata metadata) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_import_decrypt, null);
+        builder.setView(dialogView);
+
+        TextView title = dialogView.findViewById(R.id.title);
+        EditText encryptedInput = dialogView.findViewById(R.id.encryptedInput);
+        Button decryptButton = dialogView.findViewById(R.id.decryptButton);
+        ImageButton closeButton = dialogView.findViewById(R.id.closeButton);
+
+        title.setText("Enter Secret Key for Decryption");
+        encryptedInput.setHint("Enter Secret Key");
+        encryptedInput.setText(secretKeyInput);
+        decryptButton.setText("Load");
+
+        AlertDialog dialog = builder.create();
+
+        decryptButton.setOnClickListener(v -> {
+            String secretKey = encryptedInput.getText().toString().trim();
+            if (secretKey.isEmpty()) {
+                Toast.makeText(this, "Enter secret key", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            loadMetadata(metadata, secretKey);
+            dialog.dismiss();
+        });
+
+        closeButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private void loadMetadata(FileUtils.FileMetadata metadata, String secretKey) {
+        try {
+            String decrypted = metadata.type.equals("Encrypt") ? CryptoUtils.decrypt(metadata.content, secretKey) : metadata.content;
+            JSONObject json = new JSONObject(decrypted);
+//            secretKeyInput.setText(secretKey != null ? secretKey : "");
+            populateFields(json);
+        } catch (Exception e) {
+            Toast.makeText(this, "Error loading data: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void processData(String type) {
+        String secretKey = secretKeyInput;
+        String packageName = packageNameInput.getText().toString().trim();
+        String versionCode = versionCodeInput.getText().toString().trim();
+        String forceUpdate = forceUpdateSpinner.getSelectedItem().toString();
+        String adNetwork = adNetworkSpinner.getSelectedItem().toString();
+        String forceUpdateMessage = forceUpdateMessageInput.getText().toString().trim();
+        String content = contentInput.getText().toString().trim();
+
+        if (secretKey.isEmpty() || packageName.isEmpty() || versionCode.isEmpty() || forceUpdateMessage.isEmpty()) {
+            Toast.makeText(this, "Fill all required fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
         try {
+            JSONObject json = new JSONObject();
+            json.put("packageName", packageName);
+            json.put("versionCode", Integer.parseInt(versionCode));
+            json.put("forceUpdate", Boolean.parseBoolean(forceUpdate));
+            json.put("adNetwork", adNetwork);
+            json.put("forceUpdateMessage", forceUpdateMessage);
+            json.put("content", content);
+
+            String data = json.toString();
             String result;
             if (type.equals("Encrypt")) {
                 result = CryptoUtils.encrypt(data, secretKey);
+                showResultDialog(result, type);
             } else {
                 result = CryptoUtils.decrypt(data, secretKey);
+                populateFields(new JSONObject(result));
             }
-
-            showResultDialog(result, type);
         } catch (Exception e) {
             Toast.makeText(this, type + " error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void showImportDecryptDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_import_decrypt, null);
+        builder.setView(dialogView);
+
+        TextView title = dialogView.findViewById(R.id.title);
+        EditText encryptedInput = dialogView.findViewById(R.id.encryptedInput);
+        Button decryptButton = dialogView.findViewById(R.id.decryptButton);
+        ImageButton closeButton = dialogView.findViewById(R.id.closeButton);
+
+        title.setText("Import Encrypted Data");
+
+        AlertDialog dialog = builder.create();
+
+        decryptButton.setOnClickListener(v -> {
+            String encryptedData = encryptedInput.getText().toString().trim();
+            String secretKey = secretKeyInput;
+
+            if (encryptedData.isEmpty() || secretKey.isEmpty()) {
+                Toast.makeText(this, "Enter both encrypted data and secret key", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            try {
+                String decrypted = CryptoUtils.decrypt(encryptedData, secretKey);
+                JSONObject json = new JSONObject(decrypted);
+                populateFields(json);
+                dialog.dismiss();
+            } catch (Exception e) {
+                Toast.makeText(this, "Decrypt error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+
+        closeButton.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private void populateFields(JSONObject json) throws Exception {
+        packageNameInput.setText(json.getString("packageName"));
+        versionCodeInput.setText(String.valueOf(json.getInt("versionCode")));
+        forceUpdateSpinner.setSelection(json.getBoolean("forceUpdate") ? 0 : 1);
+        adNetworkSpinner.setSelection(json.getString("adNetwork").equals("admob") ? 0 : 1);
+        forceUpdateMessageInput.setText(json.getString("forceUpdateMessage"));
+        contentInput.setText(json.getString("content"));
     }
 
     private void showResultDialog(String result, String type) {
@@ -147,75 +266,30 @@ public class MainActivity extends AppCompatActivity {
         });
 
         saveButton.setOnClickListener(v -> {
-            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-            String fileName = type.toLowerCase() + "_" + timeStamp + ".txt";
-            if (useExternalStorage) {
-                if (checkStoragePermissions()) {
-                    saveFile(fileName, result, type);
+            try {
+                String fileName;
+                String timeStamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(new java.util.Date());
+                if (editingMetadata != null) {
+                    fileName = editingMetadata.fileName; // Use existing file name for edit
                 } else {
-                    requestStoragePermissions(() -> saveFile(fileName, result, type));
+                    fileName = type.toLowerCase() + "_" + timeStamp + ".txt"; // New file
                 }
-            } else {
-                saveFile(fileName, result, type);
+                FileUtils.saveFile(this, fileName, result, type, false);
+                Toast.makeText(this, "Saved as " + fileName, Toast.LENGTH_SHORT).show();
+                if (editingMetadata != null) {
+                    // Notify SavedResponsesActivity to refresh
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("updated_file_name", fileName);
+                    setResult(RESULT_OK, resultIntent);
+                }
+                dialog.dismiss();
+            } catch (Exception e) {
+                Toast.makeText(this, "Save error: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
 
         closeButton.setOnClickListener(v -> dialog.dismiss());
 
         dialog.show();
-    }
-
-    private void saveFile(String fileName, String content, String type) {
-        try {
-            FileUtils.saveFile(this, fileName, content, type, useExternalStorage);
-            Toast.makeText(this, "Saved as " + fileName, Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Toast.makeText(this, "Save error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            Log.d("aaaa", e.getMessage());
-        }
-    }
-
-    private boolean checkStoragePermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
-            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED;
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) { // Android 6-12
-            return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-        }
-        return true; // Below Android 6, no runtime permissions needed
-    }
-
-    private void requestStoragePermissions(Runnable onGranted) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED},
-                    STORAGE_PERMISSION_CODE);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    STORAGE_PERMISSION_CODE);
-        }
-        // Store callback to execute after permission result
-        this.onPermissionGrantedCallback = onGranted;
-    }
-
-    private Runnable onPermissionGrantedCallback;
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == STORAGE_PERMISSION_CODE) {
-            boolean allGranted = true;
-            for (int result : grantResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    allGranted = false;
-                    break;
-                }
-            }
-            if (allGranted && onPermissionGrantedCallback != null) {
-                onPermissionGrantedCallback.run();
-            } else {
-                Toast.makeText(this, "Storage permissions denied", Toast.LENGTH_LONG).show();
-            }
-        }
     }
 }

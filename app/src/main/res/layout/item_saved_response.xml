@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="4dp"
-    android:layout_margin="8dp">
+    android:layout_margin="8dp"
+    android:backgroundTint="#1E1E1E">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,58 +15,70 @@
             android:id="@+id/fileNameText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Filename"
+            android:textColor="#FFFFFF"
             android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#212121" />
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/dateText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Date"
-            android:textSize="14sp"
-            android:textColor="#757575" />
+            android:textColor="#B0B0B0"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/typeText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Type"
-            android:textSize="14sp"
-            android:textColor="#757575" />
+            android:textColor="#B0B0B0"
+            android:textSize="14sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="end"
             android:layout_marginTop="8dp">
 
             <Button
                 android:id="@+id/viewButton"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
+                android:layout_weight="1"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:backgroundTint="#BB86FC"
                 android:text="View"
-                android:backgroundTint="#6200EA"
-                android:textColor="#FFFFFF"
-                android:layout_marginEnd="8dp" />
+                android:textColor="#FFFFFF" />
+
+            <Button
+                android:id="@+id/editButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:backgroundTint="#BB86FC"
+                android:text="Edit"
+                android:textColor="#FFFFFF" />
 
             <Button
                 android:id="@+id/renameButton"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
+                android:layout_weight="1"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:backgroundTint="#BB86FC"
                 android:text="Rename"
-                android:backgroundTint="#B388FF"
-                android:textColor="#FFFFFF"
-                android:layout_marginEnd="8dp" />
+                android:textColor="#FFFFFF" />
 
             <Button
                 android:id="@+id/deleteButton"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
+                android:layout_weight="1"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:backgroundTint="#BB86FC"
                 android:text="Delete"
-                android:backgroundTint="#D81B60"
                 android:textColor="#FFFFFF" />
         </LinearLayout>
     </LinearLayout>

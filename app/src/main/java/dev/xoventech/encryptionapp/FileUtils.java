@@ -2,7 +2,6 @@ package dev.xoventech.encryptionapp;
 
 import android.content.Context;
 import android.os.Environment;
-import android.util.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,15 +16,11 @@ import java.util.List;
 import java.util.Locale;
 
 public class FileUtils {
-    private static final String TAG = "FileUtils";
-    private static final String METADATA_FILE = "metadata.dat";
-
     public static class FileMetadata implements Serializable {
-        private static final long serialVersionUID = 1L; // For serialization compatibility
-        String fileName;
-        String date;
-        String type;
-        String content;
+        public String fileName;
+        public String date;
+        public String type;
+        public String content;
 
         public FileMetadata(String fileName, String date, String type, String content) {
             this.fileName = fileName;
@@ -35,117 +30,98 @@ public class FileUtils {
         }
     }
 
-    public static boolean isExternalStorageWritable() {
-        return Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
-    }
-
     public static void saveFile(Context context, String fileName, String content, String type, boolean useExternalStorage) throws Exception {
-        try {
-            String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
-            FileOutputStream fos;
-            if (useExternalStorage && isExternalStorageWritable()) {
-                File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
-                if (!dir.exists()) dir.mkdirs();
-                File file = new File(dir, fileName);
-                fos = new FileOutputStream(file);
-            } else {
-                fos = context.openFileOutput(fileName, Context.MODE_PRIVATE);
-            }
-            fos.write(content.getBytes("UTF-8"));
-            fos.close();
+        String date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+        FileMetadata metadata = new FileMetadata(fileName, date, type, content);
 
-            List<FileMetadata> metadataList = loadMetadata(context);
-            metadataList.add(new FileMetadata(fileName, timeStamp, type, content));
-            saveMetadata(context, metadataList);
-        } catch (Exception e) {
-            Log.e(TAG, "Error saving file: " + e.getMessage(), e);
-            throw e; // Re-throw to let caller handle
+        File file;
+        if (useExternalStorage) {
+            file = new File(Environment.getExternalStorageDirectory(), fileName);
+        } else {
+            file = new File(context.getFilesDir(), fileName);
         }
-    }
 
-    public static String readFile(Context context, String fileName, boolean useExternalStorage) throws Exception {
-        try {
-            FileInputStream fis;
-            if (useExternalStorage && isExternalStorageWritable()) {
-                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), fileName);
-                fis = new FileInputStream(file);
-            } else {
-                fis = context.openFileInput(fileName);
-            }
-            byte[] buffer = new byte[1024];
-            StringBuilder content = new StringBuilder();
-            int bytesRead;
-            while ((bytesRead = fis.read(buffer)) != -1) {
-                content.append(new String(buffer, 0, bytesRead, "UTF-8"));
-            }
-            fis.close();
-            return content.toString();
-        } catch (Exception e) {
-            Log.e(TAG, "Error reading file: " + e.getMessage(), e);
-            throw e;
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(content.getBytes());
         }
-    }
 
-    public static void deleteFile(Context context, String fileName, boolean useExternalStorage) throws Exception {
-        try {
-            if (useExternalStorage && isExternalStorageWritable()) {
-                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), fileName);
-                if (file.exists()) file.delete();
-            } else {
-                context.deleteFile(fileName);
+        List<FileMetadata> metadataList = loadMetadata(context);
+        boolean updated = false;
+        for (int i = 0; i < metadataList.size(); i++) {
+            if (metadataList.get(i).fileName.equals(fileName)) {
+                metadataList.set(i, metadata);
+                updated = true;
+                break;
             }
-            List<FileMetadata> metadataList = loadMetadata(context);
-            metadataList.removeIf(metadata -> metadata.fileName.equals(fileName));
-            saveMetadata(context, metadataList);
-        } catch (Exception e) {
-            Log.e(TAG, "Error deleting file: " + e.getMessage(), e);
-            throw e;
         }
-    }
+        if (!updated) {
+            metadataList.add(metadata);
+        }
 
-    public static void renameFile(Context context, String oldName, String newName, boolean useExternalStorage) throws Exception {
-        try {
-            List<FileMetadata> metadataList = loadMetadata(context);
-            for (FileMetadata metadata : metadataList) {
-                if (metadata.fileName.equals(oldName)) {
-                    metadata.fileName = newName;
-                    String content = readFile(context, oldName, useExternalStorage);
-                    deleteFile(context, oldName, useExternalStorage);
-                    saveFile(context, newName, content, metadata.type, useExternalStorage);
-                    break;
-                }
-            }
-            saveMetadata(context, metadataList);
-        } catch (Exception e) {
-            Log.e(TAG, "Error renaming file: " + e.getMessage(), e);
-            throw e;
+        try (FileOutputStream fos = context.openFileOutput("metadata.dat", Context.MODE_PRIVATE);
+             ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+            oos.writeObject(metadataList); // Fixed: Use writeObject instead of write
         }
     }
 
     public static List<FileMetadata> loadMetadata(Context context) {
-        try {
-            FileInputStream fis = context.openFileInput(METADATA_FILE);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            List<FileMetadata> metadataList = (List<FileMetadata>) ois.readObject();
-            ois.close();
-            fis.close();
-            return metadataList;
+        List<FileMetadata> metadataList = new ArrayList<>();
+        try (FileInputStream fis = context.openFileInput("metadata.dat");
+             ObjectInputStream ois = new ObjectInputStream(fis)) {
+            metadataList = (List<FileMetadata>) ois.readObject();
         } catch (Exception e) {
-            Log.e(TAG, "Error loading metadata: " + e.getMessage(), e);
-            return new ArrayList<>();
+            // File may not exist yet
+        }
+        return metadataList;
+    }
+
+    public static void renameFile(Context context, String oldName, String newName, boolean useExternalStorage) throws Exception {
+        File oldFile;
+        File newFile;
+        if (useExternalStorage) {
+            oldFile = new File(Environment.getExternalStorageDirectory(), oldName);
+            newFile = new File(Environment.getExternalStorageDirectory(), newName);
+        } else {
+            oldFile = new File(context.getFilesDir(), oldName);
+            newFile = new File(context.getFilesDir(), newName);
+        }
+
+        if (!oldFile.renameTo(newFile)) {
+            throw new Exception("Failed to rename file");
+        }
+
+        List<FileMetadata> metadataList = loadMetadata(context);
+        for (FileMetadata metadata : metadataList) {
+            if (metadata.fileName.equals(oldName)) {
+                metadata.fileName = newName;
+                metadata.date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+            }
+        }
+
+        try (FileOutputStream fos = context.openFileOutput("metadata.dat", Context.MODE_PRIVATE);
+             ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+            oos.writeObject(metadataList); // Fixed: Use writeObject instead of write
         }
     }
 
-    private static void saveMetadata(Context context, List<FileMetadata> metadataList) throws Exception {
-        try {
-            FileOutputStream fos = context.openFileOutput(METADATA_FILE, Context.MODE_PRIVATE);
-            ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(metadataList);
-            oos.close();
-            fos.close();
-        } catch (Exception e) {
-            Log.e(TAG, "Error saving metadata: " + e.getMessage(), e);
-            throw e;
+    public static void deleteFile(Context context, String fileName, boolean useExternalStorage) throws Exception {
+        File file;
+        if (useExternalStorage) {
+            file = new File(Environment.getExternalStorageDirectory(), fileName);
+        } else {
+            file = new File(context.getFilesDir(), fileName);
+        }
+
+        if (!file.delete()) {
+            throw new Exception("Failed to delete file");
+        }
+
+        List<FileMetadata> metadataList = loadMetadata(context);
+        metadataList.removeIf(metadata -> metadata.fileName.equals(fileName));
+
+        try (FileOutputStream fos = context.openFileOutput("metadata.dat", Context.MODE_PRIVATE);
+             ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+            oos.writeObject(metadataList); // Fixed: Use writeObject instead of write
         }
     }
 }

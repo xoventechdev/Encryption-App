@@ -21,50 +21,33 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/resultTitle"
+        android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="Import Encrypted Data"
         android:textSize="18sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"
         android:layout_marginBottom="8dp" />
 
     <EditText
-        android:id="@+id/resultText"
+        android:id="@+id/encryptedInput"
         android:layout_width="match_parent"
         android:layout_height="120dp"
+        android:hint="Paste Encrypted Data"
         android:inputType="textMultiLine"
         android:gravity="top"
         android:background="@drawable/edit_text_background"
         android:padding="12dp"
         android:textColor="#FFFFFF"
-        android:textColorHint="#B0B0B0"
-        android:enabled="false" />
+        android:textColorHint="#B0B0B0" />
 
-    <LinearLayout
+    <Button
+        android:id="@+id/decryptButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="16dp">
-
-        <Button
-            android:id="@+id/copyButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:backgroundTint="#BB86FC"
-            android:text="Copy"
-            android:textColor="#FFFFFF" />
-
-        <Button
-            android:id="@+id/saveButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:backgroundTint="#BB86FC"
-            android:text="Save"
-            android:textColor="#FFFFFF" />
-    </LinearLayout>
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#BB86FC"
+        android:text="Decrypt"
+        android:textColor="#FFFFFF" />
 </LinearLayout>

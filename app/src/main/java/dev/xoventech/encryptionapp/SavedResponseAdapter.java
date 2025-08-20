@@ -1,9 +1,8 @@
 package dev.xoventech.encryptionapp;
 
 import android.app.AlertDialog;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -47,8 +46,8 @@ public class SavedResponseAdapter extends RecyclerView.Adapter<SavedResponseAdap
             builder.setTitle("View Content");
             builder.setMessage(metadata.content);
             builder.setPositiveButton("Copy", (dialog, which) -> {
-                ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText("Saved Content", metadata.content);
+                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+                android.content.ClipData clip = android.content.ClipData.newPlainText("Saved Content", metadata.content);
                 clipboard.setPrimaryClip(clip);
                 Toast.makeText(context, "Content copied to clipboard", Toast.LENGTH_SHORT).show();
             });
@@ -56,11 +55,22 @@ public class SavedResponseAdapter extends RecyclerView.Adapter<SavedResponseAdap
             builder.show();
         });
 
+        holder.editButton.setOnClickListener(v -> {
+            Intent intent = new Intent(context, MainActivity.class);
+            intent.putExtra("file_metadata", metadata);
+            if (context instanceof SavedResponsesActivity) {
+                ((SavedResponsesActivity) context).startActivityForResult(intent, 1);
+            }
+        });
+
         holder.renameButton.setOnClickListener(v -> {
             AlertDialog.Builder builder = new AlertDialog.Builder(context);
             builder.setTitle("Rename File");
             EditText input = new EditText(context);
             input.setText(metadata.fileName);
+            input.setTextColor(0xFFFFFFFF);
+            input.setHintTextColor(0xFFB0B0B0);
+            input.setBackgroundResource(R.drawable.edit_text_background);
             builder.setView(input);
             builder.setPositiveButton("Rename", (dialog, which) -> {
                 String newName = input.getText().toString().trim();
@@ -98,6 +108,22 @@ public class SavedResponseAdapter extends RecyclerView.Adapter<SavedResponseAdap
         });
     }
 
+    public void updateFile(String fileName) {
+        List<FileUtils.FileMetadata> updatedMetadataList = FileUtils.loadMetadata(context);
+        for (int i = 0; i < metadataList.size(); i++) {
+            if (metadataList.get(i).fileName.equals(fileName)) {
+                for (FileUtils.FileMetadata updatedMetadata : updatedMetadataList) {
+                    if (updatedMetadata.fileName.equals(fileName)) {
+                        metadataList.set(i, updatedMetadata);
+                        break;
+                    }
+                }
+                notifyItemChanged(i);
+                break;
+            }
+        }
+    }
+
     @Override
     public int getItemCount() {
         return metadataList.size();
@@ -105,7 +131,7 @@ public class SavedResponseAdapter extends RecyclerView.Adapter<SavedResponseAdap
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView fileNameText, dateText, typeText;
-        Button viewButton, renameButton, deleteButton;
+        Button viewButton, editButton, renameButton, deleteButton;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -113,6 +139,7 @@ public class SavedResponseAdapter extends RecyclerView.Adapter<SavedResponseAdap
             dateText = itemView.findViewById(R.id.dateText);
             typeText = itemView.findViewById(R.id.typeText);
             viewButton = itemView.findViewById(R.id.viewButton);
+            editButton = itemView.findViewById(R.id.editButton);
             renameButton = itemView.findViewById(R.id.renameButton);
             deleteButton = itemView.findViewById(R.id.deleteButton);
         }

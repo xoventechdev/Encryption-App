@@ -1,92 +1,152 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    android:orientation="vertical"
-    android:background="#F5F5F5">
+    android:background="#121212">
 
-    <com.google.android.material.appbar.AppBarLayout
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#6200EA">
+        android:layout_height="?attr/actionBarSize"
+        android:background="#1E1E1E"
+        app:title="Encrypt/Decrypt App"
+        app:titleTextColor="#FFFFFF"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="#6200EA"
-            app:title="Encrypt/Decrypt App"
-            app:titleTextColor="#FFFFFF">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:orientation="horizontal">
 
             <Button
                 android:id="@+id/viewSavedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:text="View Saved"
-                android:backgroundTint="#B388FF"
-                android:textColor="#FFFFFF"
-                android:layout_marginEnd="8dp" />
-        </androidx.appcompat.widget.Toolbar>
-    </com.google.android.material.appbar.AppBarLayout>
+                android:layout_marginEnd="8dp"
+                android:backgroundTint="#BB86FC"
+                android:text="View"
+                android:textColor="#FFFFFF" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="16dp">
+            <Button
+                android:id="@+id/importDecryptButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:backgroundTint="#BB86FC"
+                android:text="Import"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+    </androidx.appcompat.widget.Toolbar>
 
-        <EditText
-            android:id="@+id/secretKeyInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Enter Secret Key"
-            android:inputType="text"
-            android:textColor="@color/black"
-            android:background="@drawable/edit_text_background"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp" />
-
-        <EditText
-            android:id="@+id/dataInput"
-            android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:textColor="@color/black"
-            android:hint="Enter Data (JSON/Text/Number)"
-            android:inputType="textMultiLine"
-            android:gravity="top"
-            android:background="@drawable/edit_text_background"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp" />
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:padding="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center">
+            android:orientation="vertical">
 
-            <Button
-                android:id="@+id/encryptButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
+            <EditText
+                android:id="@+id/packageNameInput"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Encrypt"
-                android:backgroundTint="#6200EA"
+                android:hint="Enter Package Name"
+                android:inputType="text"
+                android:background="@drawable/edit_text_background"
+                android:padding="12dp"
                 android:textColor="#FFFFFF"
-                android:layout_marginEnd="8dp" />
+                android:textColorHint="#B0B0B0"
+                android:layout_marginBottom="16dp" />
 
-            <Button
-                android:id="@+id/decryptButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
+            <EditText
+                android:id="@+id/versionCodeInput"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Decrypt"
-                android:backgroundTint="#B388FF"
+                android:hint="Enter Version Code"
+                android:inputType="number"
+                android:background="@drawable/edit_text_background"
+                android:padding="12dp"
                 android:textColor="#FFFFFF"
-                android:layout_marginStart="8dp" />
+                android:textColorHint="#B0B0B0"
+                android:layout_marginBottom="16dp" />
+
+            <Spinner
+                android:id="@+id/forceUpdateSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/edit_text_background"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp" />
+
+            <Spinner
+                android:id="@+id/adNetworkSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/edit_text_background"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp" />
+
+            <EditText
+                android:id="@+id/forceUpdateMessageInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="A critical update is available! Please update your app to continue."
+                android:inputType="textMultiLine"
+                android:background="@drawable/edit_text_background"
+                android:padding="12dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#B0B0B0"
+                android:layout_marginBottom="16dp" />
+
+            <EditText
+                android:id="@+id/contentInput"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:hint="Enter Content (Large Text)"
+                android:inputType="textMultiLine"
+                android:gravity="top"
+                android:background="@drawable/edit_text_background"
+                android:padding="12dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#B0B0B0"
+                android:layout_marginBottom="16dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/encryptButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:backgroundTint="#BB86FC"
+                    android:text="Encrypt"
+                    android:textColor="#FFFFFF" />
+
+                <Button
+                    android:id="@+id/decryptButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:backgroundTint="#BB86FC"
+                    android:text="Decrypt"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
-</LinearLayout>
+    </ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>
